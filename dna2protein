@@ -1,0 +1,287 @@
+use strict;
+#!/usr/local/bin/perl;
+use strict;
+use warnings;
+
+my ($case) = @ARGV;
+
+my $debug = 1;
+
+#################################
+# main
+#################################
+
+# get some seq:
+#my $sample_dna = 'CCAGAATGGTTACTATGGACATCCGCCAACCATACAAGCTATGGTGAAATGCTTTATCTATCTCATTTTT';
+
+my $sample_dna = 'CCAgaatggTTACTATGGACATCCGCCAACCATACAAGCTATGGTGAAATGCTTTATCTATCTCATTTTT';
+
+print "original DNA sequence:\n";
+print $sample_dna;
+print "\n";
+print "length: " . length($sample_dna);
+print "\n\n";
+
+print "translated protein sequence in frame 0:\n";
+my $prot_seq0 = dna2protein(0, $sample_dna, $case);
+print "SEQ: $prot_seq0->{PROT_SEQ}";
+print "\n";
+print "SEQ LENGTH: $prot_seq0->{PROT_LEN}";
+print "\n";
+print "SEQ RESIDUAL: $prot_seq0->{RESIDUAL_NTS}";
+print "\n";
+print "\n";
+
+print "translated protein sequence in frame 1:\n";
+my $prot_seq1 = dna2protein(1, $sample_dna);
+print "SEQ: $prot_seq1->{PROT_SEQ}";
+print "\n";
+print "SEQ LENGTH: $prot_seq1->{PROT_LEN}";
+print "\n";
+print "SEQ RESIDUAL: $prot_seq1->{RESIDUAL_NTS}";
+print "\n";
+print "\n";
+
+print "translated protein sequence in frame 2:\n";
+my $prot_seq2 = dna2protein(2, $sample_dna);
+print "SEQ: $prot_seq2->{PROT_SEQ}";
+print "\n";
+print "SEQ LENGTH: $prot_seq2->{PROT_LEN}";
+print "\n";
+print "SEQ RESIDUAL: $prot_seq2->{RESIDUAL_NTS}";
+print "\n";
+print "\n";
+
+print "done!\n\n";
+
+##################################################
+# Sub get list of aminoacid, all in upper case 
+################################################## 
+sub get_amino_list {
+  my %genetic_code = (
+
+     'ATT'=>'I', #Isoleucine
+     'ATC'=>'I', #Isoleucine
+     'ATA'=>'I', #Isoleucine
+
+     'CTT'=>'L', #Leucine
+     'CTC'=>'L', #Leucine
+     'CTA'=>'L', #Leucine
+     'CTG'=>'L', #Leucine
+     'TTA'=>'L', #Leucine
+     'TTG'=>'L', #Leucine
+
+     'GTA'=>'V', #Valine
+     'GTC'=>'V', #Valine
+     'GTG'=>'V', #Valine
+     'GTT'=>'V', #Valine
+
+     'TTC'=>'F', #Phenylalanine
+     'TTT'=>'F', #Phenylalanine
+
+     'ATG'=>'M', #Methionine
+
+     'TGC'=>'C', #Cysteine
+     'TGT'=>'C', #Cysteine
+
+     'GCA'=>'A', #Alanine
+     'GCC'=>'A', #Alanine
+     'GCG'=>'A', #Alanine
+     'GCT'=>'A', #Alanine
+
+     'GGA'=>'G', #Glycine
+     'GGC'=>'G', #Glycine
+     'GGG'=>'G', #Glycine
+     'GGT'=>'G', #Glycine
+
+     'CCC'=>'P', #Proline
+     'CCG'=>'P', #Proline
+     'CCT'=>'P', #Proline
+     'CCA'=>'P', #Proline
+
+     'ACA'=>'T', #Threonine
+     'ACC'=>'T', #Threonine
+     'ACG'=>'T', #Threonine
+     'ACT'=>'T', #Threonine
+
+     'TCA'=>'S', #Serine
+     'TCC'=>'S', #Serine
+     'TCG'=>'S',  #Serine
+     'TCT'=>'S', #Serine
+     'AGC'=>'S', #Serine#Valine
+     'AGT'=>'S', #Serine
+
+     'TAC'=>'Y', #Tyrosine
+     'TAT'=>'Y', #Tyrosine
+
+     'TGG'=>'W', #Tryptophan
+
+     'CAA'=>'Q', #Glutamine
+     'CAG'=>'Q', #Glutamine
+
+     'AAC'=>'N', #Asparagine
+     'AAT'=>'N', #Asparagine
+
+     'CAT'=>'H', #Histidine
+     'CAC'=>'H', #Histidine
+
+     'GAA'=>'E', #Glutamic Acid
+     'GAG'=>'E', #Glutamic Acid
+
+     'GAC'=>'D', #Aspartic Acid
+     'GAT'=>'D', #Aspartic Acid
+
+     'AAG'=>'K', #Lysine
+
+     'AGA'=>'R', #Arginine
+     'AGG'=>'R', #Arginine
+     'CGA'=>'R', #Arginine
+     'CGC'=>'R', #Arginine
+     'CGG'=>'R', #Arginine
+     'CGT'=>'R', #Arginine
+
+     'TAA'=>'*', #Stop
+     'TAG'=>'*', #Stop
+     'TGA'=>'*', #Stop
+
+     );
+
+  return \%genetic_code;
+} # ene get_amino_list
+
+
+##################################################
+# Sub get aminoacid list, with case sensitivity
+##################################################
+sub get_amino_list_case {
+  my %genetic_code_case = (
+
+     'ATT'=>'I', #Isoleucine
+     'ATC'=>'I', #Isoleucine
+     'ATA'=>'I', #Isoleucine
+
+     'CTT'=>'L', #Leucine
+     'CTC'=>'L', #Leucine
+     'CTA'=>'L', #Leucine
+     'CTG'=>'L', #Leucine
+     'TTA'=>'L', #Leucine
+     'TTG'=>'L', #Leucine
+
+     'GTA'=>'V', #Valine
+     'GTC'=>'V', #Valine
+     'GTG'=>'V', #Valine
+     'GTT'=>'V', #Valine
+
+     'TTC'=>'F', #Phenylalanine
+     'TTT'=>'F', #Phenylalanine
+
+     'ATG'=>'M', #Methionine
+
+     'TGC'=>'C', #Cysteine
+     'TGT'=>'C', #Cysteine
+
+     'GCA'=>'A', #Alanine
+     'GCC'=>'A', #Alanine
+     'GCG'=>'A', #Alanine
+     'GCT'=>'A', #Alanine
+
+     'GGA'=>'G', #Glycine
+     'GGC'=>'G', #Glycine
+     'GGG'=>'G', #Glycine
+     'GGT'=>'G', #Glycine
+
+     'CCC'=>'P', #Proline
+     'CCG'=>'P', #Proline
+     'CCT'=>'P', #Proline
+     'CCA'=>'P', #Proline
+
+     'ACA'=>'T', #Threonine
+     'ACC'=>'T', #Threonine
+     'ACG'=>'T', #Threonine
+     'ACT'=>'T', #Threonine
+
+     'TCA'=>'S', #Serine
+     'TCC'=>'S', #Serine
+     'TCG'=>'S',  #Serine
+     'TCT'=>'S', #Serine
+     'AGC'=>'S', #Serine#Valine
+     'AGT'=>'S', #Serine
+
+     'TAC'=>'Y', #Tyrosine
+     'TAT'=>'Y', #Tyrosine
+
+     'TGG'=>'W', #Tryptophan
+
+     'CAA'=>'Q', #Glutamine
+     'CAG'=>'Q', #Glutamine
+
+     'AAC'=>'N', #Asparagine
+     'AAT'=>'N', #Asparagine
+
+     'CAT'=>'H', #Histidine
+     'CAC'=>'H', #Histidine
+
+     'GAA'=>'E', #Glutamic Acid
+     'GAG'=>'E', #Glutamic Acid
+
+     'GAC'=>'D', #Aspartic Acid
+     'GAT'=>'D', #Aspartic Acid
+
+     'AAG'=>'K', #Lysine
+
+     'AGA'=>'R', #Arginine
+     'AGG'=>'R', #Arginine
+     'CGA'=>'R', #Arginine
+     'CGC'=>'R', #Arginine
+     'CGG'=>'R', #Arginine
+     'CGT'=>'R', #Arginine
+
+     'TAA'=>'*', #Stop
+     'TAG'=>'*', #Stop
+     'TGA'=>'*', #Stop
+
+     );
+
+     foreach my $codon (keys %genetic_code_case) {
+        $genetic_code_case{lc($codon)} = lc($genetic_code_case{$codon}); # add lower case map
+     }
+
+  return \%genetic_code_case;
+} # ene get_amino_list_case
+
+
+
+##################################################
+# protein seq. translation -- dna seq to protein seq
+# frame: 0, 1, 2
+################################################## 
+sub dna2protein {
+    my ($frame, $dna, $case) = @_;
+
+    my $genetic_code = defined $case? 
+	($case==1 ? get_amino_list_case() : get_amino_list()) 
+	: get_amino_list(); # choose version depending on $case input
+
+    my $protein='';
+    my $codon;
+    my $i;
+    for($i=$frame; $i<length($dna)-2; $i+=3){
+       $codon = substr($dna,$i,3);
+       $protein .=  defined $genetic_code->{$codon} ? $genetic_code->{$codon} :"?" ;
+    }
+
+    my $residual = substr($dna,$i); 
+    print "\nThe protein is:$protein\n" if $debug;
+    my $len = length($protein);
+    print "The length of the protein is:$len\n" if $debug;
+
+    my %prot = (
+		FRAME => $frame,
+                PROT_SEQ => $protein,
+                PROT_LEN => $len,
+                RESIDUAL_NTS => $residual,
+    );
+
+    return \%prot;
+}
+
